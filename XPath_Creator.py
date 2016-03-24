@@ -37,7 +37,7 @@ with open('lines2.txt', 'w') as target:
 	AttributeNameToItsAttributeType = {}
 	AttributeNameToItsXpath = {}
 	SimpleTypeToItsEnumerations = {}
-	EnumerationValueToItsAttributeName = {}
+	AttributeNameToItsEnumerationValues = {}
 	currentComplexTypeName = None
 	currentAttributeName = None
 	currentSimpleTypeName = None
@@ -92,10 +92,7 @@ with open('lines2.txt', 'w') as target:
 			if attributeEnumerationTagIndex >= 0:
 				attributeType_split = line.split(" ")
 				attributeType = attributeType_split[2].split('"')[1].split(":")[1]
-				if attributeType in AttributeNameToItsAttributeType:
-					AttributeNameToItsAttributeType[currentAttributeName].append(attributeType)
-				else:
-					AttributeNameToItsAttributeType[currentAttributeName] = [attributeType]
+				AttributeNameToItsAttributeType[currentAttributeName] = attributeType
 
 		# This is to parse the simple type name information.  This will serve as a key, and the enumerations lines below it will be the values.
 		elif simpleTypeTagIndex >= 0:
@@ -119,10 +116,10 @@ with open('lines2.txt', 'w') as target:
 			if currentSimpleTypeName in SimpleTypeToItsEnumerations.keys():
 				SimpleTypeToItsEnumerations[currentSimpleTypeName].append(enumerationValue)
 			else:
-				if currentAttributeName in EnumerationValueToItsAttributeName:
-					EnumerationValueToItsAttributeName[currentAttributeName].append(enumerationValue)
+				if currentAttributeName in AttributeNameToItsEnumerationValues:
+					AttributeNameToItsEnumerationValues[currentAttributeName].append(enumerationValue)
 				else:
-					EnumerationValueToItsAttributeName[currentAttributeName] = [enumerationValue]
+					AttributeNameToItsEnumerationValues[currentAttributeName] = [enumerationValue]
 
 		elif datatypeTagIndex >= 0:
 			# Parse the line for the name, which will be the key for AttributeDataTypeToItsAttributeName dictionary
@@ -152,78 +149,84 @@ with open('lines2.txt', 'w') as target:
 
 
 
-# print ElementTypeToItsElementName
-# print ElementNameToItsParentComplexType
-# print AttributeNameToItsXpath
-# print AttributeNameToItsXpath["_IncludedInAPRIndicator"]
-# print AttributeDataTypeToItsAttributeName['Money']
-# print AttributeNameToItsAttributeType
-# print AttributeNameToItsAttributeType.keys()
-# print AttributeNameToItsAttributeType.values()
-# print AttributeNameToItsAttributeType["ChangedCircumstanceReason"]
-# print AttributeNameToItsAttributeType["AlternateARMIndexValuePercent"]
-# print currentComplexTypeName
-# print currentSimpleTypeName
-# print SimpleTypeToItsEnumerations
-# print EnumerationValueToItsAttributeName
+def menu_options():
+	print "If you'd like to print all the Xpaths, type 'print all'."
+	print "If you'd like to find an Xpath of an attribute, type 'Xpath'."
+	print "If you'd like to find the attribute's datatype, type, 'datatype'."
+	print "If you'd like to see the attribute's enumerations, type, 'enumeration'."
+	print "If you want to exit, type exit.\n"
+
+# Prompt user with options to find an Xpath for an attribute, or exit. 
+print "Hello. You can print all available Xpaths in the schema to a CSV file, you can find an Xpath of an attribute, or you can exit.\n"
+menu_options()
 
 
+desired_action = raw_input("What would you like to do now? ")
+attribute_name = ""
+while desired_action.lower() != "exit":
 
-# def menu_options():
-# 	print "If you'd like to print all the Xpaths, type 'print all'."
-# 	print "If you'd like to find an Xpath of an attribute, type 'Xpath'."
-# 	print "If you'd like to find the attribute's datatype, type, 'datatype'."
-# 	print "If you want to exit, type exit.\n"
+	if desired_action.lower() == "print all":
+		import csv
+		print_the_xpath = open('AllXpathNames.csv', 'w')
+		xpath_writer = csv.writer(print_the_xpath)
+		for attribute_name_from_dictionary in AttributeNameToItsXpath.values():
+			for item in attribute_name_from_dictionary:
+				xpath_writer.writerow([item])
+		print_the_xpath.close()
+		print "The 'AllXpathsNames' CSV file has been created for you!\n"
 
-# # Prompt user with options to find an Xpath for an attribute, or exit. 
-# print "Hello. You can print all available Xpaths in the schema to a CSV file, you can find an Xpath of an attribute, or you can exit."
-# menu_options()
+	elif desired_action.lower() == "xpath":
+		attribute_name = raw_input("Enter the attribute name (or 'exit') here: ")
+		while attribute_name.lower() != "exit":
+			# Find the raw input attribute name from user, and search for it as a key in AttributeNameToItsElementType dictionary.
+			if attribute_name in AttributeNameToItsElementType:
+				# This is where the XPath will need to be constructioned.  It starts with a back slash, and then an @ symbol, and then the attribute_name.   
+				for item in AttributeNameToItsXpath[attribute_name]:
+					print item + "\n"
+				attribute_name = raw_input("If you'd like to continue, enter another attribute.  If you're done, type exit. ") 
+			else:
+				print "Your attribute does not exist. Please input a new attribute.\n"
+				attribute_name = raw_input("If you'd like to continue, enter another attribute.  If you're done, type exit. ") 
+	elif desired_action.lower() == "datatype":
+		# This can find attribute names that have a specific datatype.
+		datatype_name = raw_input("Enter the datatype to find (or 'exit') here: ")
+		while datatype_name.lower() != "exit":
+			# Find the raw input datatype name from user, and search for it as a key in the AttributeDataTypeToItsAttributeName dictionary.
+			if datatype_name in AttributeDataTypeToItsAttributeName:
+				for item in AttributeDataTypeToItsAttributeName[datatype_name]:
+					print item
+				datatype_name = raw_input("If you'd like to continue, enter another datatype.  If you're done, type exit. ") 
+			else:
+				print "Your datatype does not exist. Please input a new datatype.\n"
+				datatype_name = raw_input("If you'd like to continue, enter another datatype.  If you're done, type exit. ") 
+	elif desired_action.lower() == "enumeration":
+		# This can find the enumerations for a specified attribute.
+		attribute_enumeration_search = raw_input("Enter the attribute name to find its enumerations.  If you're done, type exit. ")
+		while attribute_enumeration_search.lower() != "exit":
+			if attribute_enumeration_search in AttributeNameToItsXpath.keys():
+			# Find the raw input attribute name from user, and search for it as a key in the AttributeNameToItsEnumerationValues dictionary.
+				if attribute_enumeration_search in AttributeNameToItsEnumerationValues.keys():
+					print AttributeNameToItsEnumerationValues[attribute_enumeration_search]
+					attribute_enumeration_search = raw_input("If you'd like to continue, enter another enumeration.  If you're done, type exit. ")
 
-
-# desired_action = raw_input("What would you like to do now? ")
-# attribute_name = ""
-# while desired_action.lower() != "exit":
-
-# 	if desired_action.lower() == "print all":
-# 		import csv
-# 		print_the_xpath = open('AllXpathNames.csv', 'w')
-# 		xpath_writer = csv.writer(print_the_xpath)
-# 		for attribute_name_from_dictionary in AttributeNameToItsXpath.values():
-# 			for item in attribute_name_from_dictionary:
-# 				xpath_writer.writerow([item])
-# 		print_the_xpath.close()
-# 		print "The 'AllXpathsNames' CSV file has been created for you!\n"
-
-# 	elif desired_action.lower() == "xpath":
-# 		attribute_name = raw_input("Enter the attribute name (or 'exit') here: ")
-# 		while attribute_name.lower() != "exit":
-# 			# Find the raw input attribute name from user, and search for it as a key in AttributeNameToItsElementType dictionary.
-# 			if attribute_name in AttributeNameToItsElementType:
-# 				# This is where the XPath will need to be constructioned.  It starts with a back slash, and then an @ symbol, and then the attribute_name.   
-# 				for item in AttributeNameToItsXpath[attribute_name]:
-# 					print item + "\n"
-# 				attribute_name = raw_input("If you'd like to continue, enter another attribute.  If you're done, type exit. ") 
-# 			else:
-# 				print "Your attribute does not exist. Please input a new attribute.\n"
-# 				attribute_name = raw_input("If you'd like to continue, enter another attribute.  If you're done, type exit. ") 
-# 	elif desired_action.lower() == "datatype":
-# 		# This can find attribute names that have a specific datatype.
-# 		datatype_name = raw_input("Enter the datatype to find (or 'exit') here: ")
-# 		while datatype_name.lower() != "exit":
-# 			# Find the raw input datatype name from user, and search for it as a key in the AttributeDataTypeToItsAttributeName dictionary.
-# 			if datatype_name in AttributeDataTypeToItsAttributeName:
-# 				for item in AttributeDataTypeToItsAttributeName[datatype_name]:
-# 					print item + "\n"
-# 				datatype_name = raw_input("If you'd like to continue, enter another datatype.  If you're done, type exit. ") 
-# 			else:
-# 				print "Your datatype does not exist. Please input a new datatype.\n"
-# 				datatype_name = raw_input("If you'd like to continue, enter another datatype.  If you're done, type exit. ") 
-				
+				elif attribute_enumeration_search in AttributeNameToItsAttributeType.keys():
+					if AttributeNameToItsAttributeType[attribute_enumeration_search] in SimpleTypeToItsEnumerations.keys():
+						print SimpleTypeToItsEnumerations[AttributeNameToItsAttributeType[attribute_enumeration_search]]
+						attribute_enumeration_search = raw_input("If you'd like to continue, enter another enumeration.  If you're done, type exit. ")
+					else:
+						print "Your attribute does not have an enumeration.  Its datatype is a %s." % (AttributeNameToItsAttributeType[attribute_enumeration_search])
+						attribute_enumeration_search = raw_input("If you'd like to continue, enter another enumeration.  If you're done, type exit. ")
+						print attribute_enumeration_search
+			else:
+				print "Your attribute does not exist.  Please input a new attribute name.\n"
+				attribute_enumeration_search = raw_input("If you'd like to continue, enter another enumeration.  If you're done, type exit. ")
+				print attribute_enumeration_search 
+		
 	
-# 	menu_options()
-# 	desired_action = raw_input("What would you like to do now? ")
+	menu_options()
+	desired_action = raw_input("What would you like to do now? ")
 
 
-# else:
-# 	print "Thanks for stopping by!"
+else:
+	print "Thanks for stopping by!"
 
