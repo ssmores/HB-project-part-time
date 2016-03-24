@@ -9,8 +9,6 @@ There are a handful of namespaces used in this program.  They are referenced in 
 	xs
 
 
-This version will capture the attribute's enumerations.  You can build this yourself.  You got this.
-
 """
 
 # Open the schema, read each line as a list. 
@@ -51,7 +49,12 @@ with open('lines2.txt', 'w') as target:
 		elementTagIndex = line.find("<xs:element")
 		attributeTagIndex = line.find("<xs:attribute")
 		datatypeTagIndex = line.find("<mismo:DATATYPE>")
-		simpleTypeTagIndex = line.find("<xs:simpleType")
+		# The simpleTypeTagIndex will search for lines that start with <xs:simpleType, but then have additional information after it, such as a "name=...".  
+		# These types of lines are at the top of the schema, as they have reusable enumeration types, that are referenced throughout the file.
+		# The space at the end of the search string is intentional, as there should be a "name=" string after it, and so it's not enclosed in the simpleTypeNoAttributeTagIndex search that follows.
+		simpleTypeTagIndex = line.find("<xs:simpleType ")
+		# The simpleTypeNoAttributeTagIndex will search for lines that start with <xs:simpleType>.  These are usually under attributes, and their respective enumerations will follow.
+		simpleTypeNoAttributeTagIndex = line.find("<xs:simpleType>")
 		enumerationTagIndex = line.find("<xs:enumeration")
 
 		if complexTypeIndex >= 0:
@@ -94,40 +97,32 @@ with open('lines2.txt', 'w') as target:
 				else:
 					AttributeNameToItsAttributeType[currentAttributeName] = [attributeType]
 
-
+		# This is to parse the simple type name information.  This will serve as a key, and the enumerations lines below it will be the values.
 		elif simpleTypeTagIndex >= 0:
 			# Parse the lines for the simpletype lines.  
 			# The simpleType lines have a name attribute afterwards, which are part of the attribute enumeration type.  These should be the key in a new library, and the enumerations should be in a list for the values.
-			simpleTypeNameIndex = line.find("name=")
-			if simpleTypeNameIndex >= 0:
-				simpleTypeName_split = line.split(" ")
-				currentSimpleTypeName = simpleTypeName_split[1].split('"')[1]
-				SimpleTypeToItsEnumerations[currentSimpleTypeName] = []
+			simpleTypeName_split = line.split(" ")
+			currentSimpleTypeName = simpleTypeName_split[1].split('"')[1]
+			SimpleTypeToItsEnumerations[currentSimpleTypeName] = []
 				
+		# This is to find instances of a simpleType tag that doesn't contain a name, which happens after the initial set of simpleType lines. 
+		# This will change the currentSimpleTypeName to None, such that the enumeration lines below it will be associated to the applicable attribute name.
+		elif simpleTypeNoAttributeTagIndex >= 0:
+			currentSimpleTypeName = None
 
 		elif enumerationTagIndex >= 0:
 			enumerationValue_split = line.split(" ")
 			# The simpleType lines that don't have a name attribute afterwards, their enumerations follow in their own enumeration lines.  These should use the currentAttributeName as the key.
-			if enumerationTagIndex >= 0:
-				enumerationValue_split = line.split(" ")
-				enumerationValue = enumerationValue_split[1].split('"')[1]
+
+			enumerationValue = enumerationValue_split[1].split('"')[1]
+
+			if currentSimpleTypeName in SimpleTypeToItsEnumerations.keys():
+				SimpleTypeToItsEnumerations[currentSimpleTypeName].append(enumerationValue)
+			else:
 				if currentAttributeName in EnumerationValueToItsAttributeName:
 					EnumerationValueToItsAttributeName[currentAttributeName].append(enumerationValue)
 				else:
 					EnumerationValueToItsAttributeName[currentAttributeName] = [enumerationValue]
-
-				# if currentSimpleTypeName in SimpleTypeToItsEnumerations.keys():
-				# 	SimpleTypeToItsEnumerations[currentSimpleTypeName].append(enumerationValue)
-
-
-
-
-
-
-			
-
-
-
 
 		elif datatypeTagIndex >= 0:
 			# Parse the line for the name, which will be the key for AttributeDataTypeToItsAttributeName dictionary
@@ -138,24 +133,15 @@ with open('lines2.txt', 'w') as target:
 			else:
 				AttributeDataTypeToItsAttributeName[dataTypeToItsAttributeName_key] = [currentAttributeName]
 
-
-
 	for attribute_name_from_dictionary in AttributeNameToItsElementType:
-
 		build1 = AttributeNameToItsElementType[attribute_name_from_dictionary]
-
 		# There needs to be a loop between the element type and the element name.  The element name needs to be added to the xpath_print variable. 
-		
 		for elementNameInList in build1: 
 			build2 = ElementTypeToItsElementName[elementNameInList]
-
-
 			xpath_print = "/%s/@%s" % (build2, attribute_name_from_dictionary)
-			
 			while build2 != "ACS_REQUEST":
 				build3 = ElementNameToItsParentComplexType[build2]
 				build2 = ElementTypeToItsElementName[build3]
-
 				xpath_print = "/%s%s" % (build2, xpath_print) 
 
 			else:
@@ -173,20 +159,13 @@ with open('lines2.txt', 'w') as target:
 # print AttributeDataTypeToItsAttributeName['Money']
 # print AttributeNameToItsAttributeType
 # print AttributeNameToItsAttributeType.keys()
-print AttributeNameToItsAttributeType.values()
+# print AttributeNameToItsAttributeType.values()
 # print AttributeNameToItsAttributeType["ChangedCircumstanceReason"]
 # print AttributeNameToItsAttributeType["AlternateARMIndexValuePercent"]
 # print currentComplexTypeName
 # print currentSimpleTypeName
 # print SimpleTypeToItsEnumerations
 # print EnumerationValueToItsAttributeName
-
-
-
-
-
-
-
 
 
 
