@@ -188,6 +188,9 @@ while desired_action.lower() != "exit":
 				print "Your attribute does not exist. Please input a new attribute.\n"
 				attribute_name = raw_input("If you'd like to continue, enter another attribute.  If you're done, type exit. ") 
 	elif desired_action.lower() == "datatype":
+		# Print out the options of available datatypes, since the user may not remember them.
+		print "These are the available datatype strings:"
+		print AttributeDataTypeToItsAttributeName.keys()
 		# This can find attribute names that have a specific datatype.
 		datatype_name = raw_input("Enter the datatype to find (or 'exit') here: ")
 		while datatype_name.lower() != "exit":
